@@ -20,7 +20,7 @@
   snap:
     name: kubectl
     classic: yes
-    state: latest
+    state: present
 
 - name: Instalar CRI-O y containerd (en Master y Workers)
   when: "'master' in group_names or 'workers' in group_names"
