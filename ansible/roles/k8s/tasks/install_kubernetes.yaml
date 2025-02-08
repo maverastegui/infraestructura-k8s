@@ -1,10 +1,10 @@
-# roles/k8s/tasks/install_kubernetes.yaml
-
+# Desactivar swap (requisito para Kubernetes)
 - name: Desactivar swap
   shell: |
     swapoff -a
     sed -i '/ swap / s/^/#/' /etc/fstab
 
+# Instalar dependencias comunes
 - name: Instalar dependencias comunes
   apt:
     name:
@@ -15,6 +15,7 @@
     state: present
     update_cache: yes
 
+# Instalar kubectl en el Load Balancer (solo en el nodo balanceador)
 - name: Instalar kubectl en el Load Balancer
   when: "'loadbalancer' in group_names"
   snap:
@@ -22,21 +23,38 @@
     classic: yes
     state: present
 
-#- name: Instalar CRI-O y containerd (en Master y Workers)
-#  when: "'master' in group_names or 'workers' in group_names"
-#  apt:
-#    name:
-#      - cri-o
-#      - containerd
-#    state: present
+# Instalar containerd (en Master y Workers)
+- name: Instalar containerd en Master y Workers
+  when: "'master' in group_names or 'workers' in group_names"
+  apt:
+    name: containerd
+    state: present
+    update_cache: yes
 
-#- name: Habilitar y arrancar CRI-O
-#  when: "'master' in group_names or 'workers' in group_names"
-#  systemd:
-#    name: crio
-#    enabled: yes
-#    state: started
+# Habilitar y arrancar containerd
+- name: Habilitar y arrancar containerd
+  when: "'master' in group_names or 'workers' in group_names"
+  systemd:
+    name: containerd
+    enabled: yes
+    state: started
 
+# Configurar kubelet para usar containerd
+- name: Configurar kubelet para usar containerd
+  when: "'master' in group_names or 'workers' in group_names"
+  copy:
+    dest: /etc/default/kubelet
+    content: |
+      KUBELET_EXTRA_ARGS=--container-runtime=remote --container-runtime-endpoint=unix:///run/containerd/containerd.sock
+
+- name: Reiniciar kubelet para aplicar configuración
+  when: "'master' in group_names or 'workers' in group_names"
+  systemd:
+    name: kubelet
+    enabled: yes
+    state: restarted
+
+# Instalar kubeadm, kubelet y kubectl en el Master
 - name: Instalar kubeadm, kubelet y kubectl en el Master
   when: "'master' in group_names"
   shell: |
@@ -47,12 +65,14 @@
     install -o root -g root -m 0755 kubelet /usr/local/bin/
     install -o root -g root -m 0755 kubectl /usr/local/bin/
 
+# Inicializar el clúster Kubernetes (solo en Master)
 - name: Inicializar el clúster Kubernetes (solo en Master)
   when: "'master' in group_names"
   shell: |
     kubeadm init --config=roles/k8s/templates/kubeadm-config.yaml
   register: kubeadm_init
 
+# Configurar kubectl para el usuario actual (solo en Master)
 - name: Configurar kubectl para el usuario actual (solo en Master)
   when: "'master' in group_names"
   shell: |
@@ -60,16 +80,19 @@
     cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
     chown $(id -u):$(id -g) $HOME/.kube/config
 
+# Generar token de unión para los nodos Worker
 - name: Generar token de unión para los nodos Worker
   when: "'master' in group_names"
   shell: kubeadm token create --print-join-command
   register: join_command
 
+# Guardar el comando de unión para los Workers
 - name: Guardar el comando de unión para los Workers
   set_fact:
     worker_join_command: "{{ join_command.stdout }}"
   when: "'master' in group_names"
 
+# Unir Worker al clúster de forma automática
 - name: Unir Worker al clúster de forma automática
   when: "'workers' in group_names"
   shell: "{{ hostvars[groups['master'][0]].worker_join_command }}"
