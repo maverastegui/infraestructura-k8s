@@ -22,20 +22,20 @@
     classic: yes
     state: present
 
-- name: Instalar CRI-O y containerd (en Master y Workers)
-  when: "'master' in group_names or 'workers' in group_names"
-  apt:
-    name:
-      - cri-o
-      - containerd
-    state: present
+#- name: Instalar CRI-O y containerd (en Master y Workers)
+#  when: "'master' in group_names or 'workers' in group_names"
+#  apt:
+#    name:
+#      - cri-o
+#      - containerd
+#    state: present
 
-- name: Habilitar y arrancar CRI-O
-  when: "'master' in group_names or 'workers' in group_names"
-  systemd:
-    name: crio
-    enabled: yes
-    state: started
+#- name: Habilitar y arrancar CRI-O
+#  when: "'master' in group_names or 'workers' in group_names"
+#  systemd:
+#    name: crio
+#    enabled: yes
+#    state: started
 
 - name: Instalar kubeadm, kubelet y kubectl en el Master
   when: "'master' in group_names"
