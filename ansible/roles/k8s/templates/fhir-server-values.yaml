@@ -5,8 +5,8 @@ postgres:
   database: "fhir"
   credentialsSecret:
     name: fhir-db-secret
-    usernameKey: username
-    passwordKey: password
+    usernameKey: "postgresql"
+    passwordKey: "mverastegui2025"
 ingress:
   enabled: true
   hosts:

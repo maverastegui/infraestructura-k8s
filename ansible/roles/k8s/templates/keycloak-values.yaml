@@ -17,5 +17,5 @@ database:
   database: keycloak
   credentialsSecret:
     name: keycloak-db-secret
-    usernameKey: username
-    passwordKey: password
+    usernameKey: "postgresql"
+    passwordKey: "mverastegui2025"
