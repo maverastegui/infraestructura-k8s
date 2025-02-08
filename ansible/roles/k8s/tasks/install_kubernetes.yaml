@@ -1,98 +1,75 @@
-- name: Instalación de Kubernetes con CRI-O
-  hosts: all
-  become: yes
-  tasks:
-    - name: Desactivar swap
-      shell: |
-        swapoff -a
-        sed -i '/ swap / s/^/#/' /etc/fstab
+# roles/k8s/tasks/install_kubernetes.yaml
 
-    - name: Instalar dependencias comunes
-      apt:
-        name:
-          - curl
-          - apt-transport-https
-          - ca-certificates
-          - software-properties-common
-        state: present
-        update_cache: yes
+- name: Desactivar swap
+  shell: |
+    swapoff -a
+    sed -i '/ swap / s/^/#/' /etc/fstab
+
+- name: Instalar dependencias comunes
+  apt:
+    name:
+      - curl
+      - apt-transport-https
+      - ca-certificates
+      - software-properties-common
+    state: present
+    update_cache: yes
 
 - name: Instalar kubectl en el Load Balancer
-  hosts: loadbalancer
-  become: yes
-  tasks:
-    - name: Instalar kubectl usando Snap (versión 1.31.2)
-      snap:
-        name: kubectl
-        classic: yes
-        state: latest
+  when: "'loadbalancer' in group_names"
+  snap:
+    name: kubectl
+    classic: yes
+    state: latest
 
-- name: Configurar el Nodo Master
-  hosts: master
-  become: yes
-  tasks:
-    - name: Instalar CRI-O y containerd
-      apt:
-        name:
-          - cri-o
-          - containerd
-        state: present
+- name: Instalar CRI-O y containerd (en Master y Workers)
+  when: "'master' in group_names or 'workers' in group_names"
+  apt:
+    name:
+      - cri-o
+      - containerd
+    state: present
 
-    - name: Habilitar y arrancar CRI-O
-      systemd:
-        name: crio
-        enabled: yes
-        state: started
+- name: Habilitar y arrancar CRI-O
+  when: "'master' in group_names or 'workers' in group_names"
+  systemd:
+    name: crio
+    enabled: yes
+    state: started
 
-    - name: Instalar kubeadm, kubelet y kubectl en /usr/local/bin/
-      shell: |
-        curl -LO https://dl.k8s.io/release/v1.24.17/bin/linux/amd64/kubeadm
-        curl -LO https://dl.k8s.io/release/v1.24.17/bin/linux/amd64/kubelet
-        curl -LO https://dl.k8s.io/release/v1.24.17/bin/linux/amd64/kubectl
-        install -o root -g root -m 0755 kubeadm /usr/local/bin/
-        install -o root -g root -m 0755 kubelet /usr/local/bin/
-        install -o root -g root -m 0755 kubectl /usr/local/bin/
+- name: Instalar kubeadm, kubelet y kubectl en el Master
+  when: "'master' in group_names"
+  shell: |
+    curl -LO https://dl.k8s.io/release/v1.24.17/bin/linux/amd64/kubeadm
+    curl -LO https://dl.k8s.io/release/v1.24.17/bin/linux/amd64/kubelet
+    curl -LO https://dl.k8s.io/release/v1.24.17/bin/linux/amd64/kubectl
+    install -o root -g root -m 0755 kubeadm /usr/local/bin/
+    install -o root -g root -m 0755 kubelet /usr/local/bin/
+    install -o root -g root -m 0755 kubectl /usr/local/bin/
 
-    - name: Inicializar el clúster Kubernetes
-      shell: |
-        kubeadm init --config=roles/k8s/templates/kubeadm-config.yaml
-      register: kubeadm_init
+- name: Inicializar el clúster Kubernetes (solo en Master)
+  when: "'master' in group_names"
+  shell: |
+    kubeadm init --config=roles/k8s/templates/kubeadm-config.yaml
+  register: kubeadm_init
 
-    - name: Configurar kubectl para el usuario actual
-      shell: |
-        mkdir -p $HOME/.kube
-        cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
-        chown $(id -u):$(id -g) $HOME/.kube/config
+- name: Configurar kubectl para el usuario actual (solo en Master)
+  when: "'master' in group_names"
+  shell: |
+    mkdir -p $HOME/.kube
+    cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+    chown $(id -u):$(id -g) $HOME/.kube/config
 
-    - name: Generar token de unión para los nodos Worker
-      shell: kubeadm token create --print-join-command
-      register: join_command
+- name: Generar token de unión para los nodos Worker
+  when: "'master' in group_names"
+  shell: kubeadm token create --print-join-command
+  register: join_command
 
-    - name: Guardar el comando de unión para los Workers
-      set_fact:
-        worker_join_command: "{{ join_command.stdout }}"
+- name: Guardar el comando de unión para los Workers
+  set_fact:
+    worker_join_command: "{{ join_command.stdout }}"
+  when: "'master' in group_names"
 
-- name: Configurar Nodos Worker
-  hosts: workers
-  become: yes
-  tasks:
-    - name: Instalar CRI-O y containerd
-      apt:
-        name:
-          - cri-o
-          - containerd
-        state: present
-
-    - name: Habilitar y arrancar CRI-O
-      systemd:
-        name: crio
-        enabled: yes
-        state: started
-
-    - name: Instalar kubelet en /usr/local/bin/
-      shell: |
-        curl -LO https://dl.k8s.io/release/v1.24.17/bin/linux/amd64/kubelet
-        install -o root -g root -m 0755 kubelet /usr/local/bin/
-
-    - name: Unir Worker al clúster de forma automática
-      shell: "{{ hostvars[groups['master'][0]].worker_join_command }}"
+- name: Unir Worker al clúster de forma automática
+  when: "'workers' in group_names"
+  shell: "{{ hostvars[groups['master'][0]].worker_join_command }}"
