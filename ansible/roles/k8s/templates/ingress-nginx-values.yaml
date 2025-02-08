@@ -1,0 +1,10 @@
+controller:
+  allowSnippetAnnotations: true
+  config:
+    log-format-upstream: "$http_x_forwarded_for - $remote_user [$time_local] $proxy_upstream_name "$request" $status $body_bytes_sent "$http_referer" "$http_user_agent" $request_time $upstream_response_time $gzip_ratio $request_length"
+  hostNetwork: true
+  kind: DaemonSet
+  dnsPolicy: ClusterFirstWithHostNet
+  service:
+    enableHttp: true
+    enableHttps: false

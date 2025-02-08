@@ -1,0 +1,31 @@
+---
+- name: Configurar Infraestructura de Kubernetes
+  hosts: all
+  become: yes
+  tasks:
+    - name: Instalar Kubernetes Cluster
+      import_tasks: roles/k8s/tasks/install_kubernetes.yaml
+
+    - name: Desplegar Ingress Controller
+      import_tasks: roles/k8s/tasks/deploy_ingress.yaml
+
+    - name: Desplegar Keycloak
+      import_tasks: roles/k8s/tasks/deploy_keycloak.yaml
+
+    - name: Desplegar HAPI FHIR Server
+      import_tasks: roles/k8s/tasks/deploy_fhir_server.yaml
+
+    - name: Desplegar FHIR Gateway
+      import_tasks: roles/k8s/tasks/deploy_fhir_gateway.yaml
+
+    - name: Desplegar Prometheus
+      import_tasks: roles/k8s/tasks/deploy_prometheus.yaml
+
+    - name: Desplegar Graylog
+      import_tasks: roles/k8s/tasks/deploy_graylog.yaml
+
+    - name: Desplegar Fluent-bit
+      import_tasks: roles/k8s/tasks/deploy_fluentbit.yaml
+
+    - name: Desplegar Grafana
+      import_tasks: roles/k8s/tasks/deploy_grafana.yaml

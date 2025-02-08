@@ -1,0 +1,9 @@
+- name: Desplegar HAPI FHIR Server
+  kubernetes.core.helm:
+    name: hapi-fhir
+    chart_ref: opensrp/hapi-fhir
+    chart_repo_url: https://helm.smartregister.org
+    chart_version: "1.4.1"
+    release_namespace: default
+    values_files:
+      - roles/k8s/templates/fhir-server-values.yaml

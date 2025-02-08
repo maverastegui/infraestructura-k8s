@@ -1,0 +1,11 @@
+config:
+  inputs: |
+    [INPUT]
+        Name tail
+        Path /var/log/containers/*.log
+        Tag kube.*
+        Parser docker
+  outputs: |
+    [OUTPUT]
+        Name stdout
+        Match *

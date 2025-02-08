@@ -1,0 +1,21 @@
+replicas: 1
+image:
+  repository: quay.io/keycloak/keycloak
+  tag: "25.0.5"
+ingress:
+  enabled: true
+  hosts:
+    - host: ayamjutauth.prueba.pe
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+database:
+  vendor: postgres
+  hostname: "192.168.18.205"
+  port: 5432
+  database: keycloak
+  credentialsSecret:
+    name: keycloak-db-secret
+    usernameKey: username
+    passwordKey: password

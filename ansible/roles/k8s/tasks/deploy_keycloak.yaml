@@ -1,0 +1,9 @@
+- name: Desplegar Keycloak
+  kubernetes.core.helm:
+    name: keycloak
+    chart_ref: codecentric/keycloakx
+    chart_repo_url: https://codecentric.github.io/helm-charts
+    chart_version: "2.5.1"
+    release_namespace: default
+    values_files:
+      - roles/k8s/templates/keycloak-values.yaml

@@ -1,0 +1,9 @@
+- name: Desplegar FHIR Gateway
+  kubernetes.core.helm:
+    name: fhir-gateway
+    chart_ref: onaio/fhir-gateway
+    chart_repo_url: https://charts.smartregister.org
+    chart_version: "1.0.14"
+    release_namespace: default
+    values_files:
+      - roles/k8s/templates/fhir-gateway-values.yaml

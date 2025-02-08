@@ -1,0 +1,15 @@
+alertmanager:
+  enabled: true
+  config:
+    receivers:
+      - name: sre-team
+        email_configs:
+          - to: alerts@prueba.pe
+ingress:
+  enabled: true
+  hosts:
+    - host: ayamjutmonitor.prueba.pe
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []

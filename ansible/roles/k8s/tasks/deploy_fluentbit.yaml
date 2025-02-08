@@ -1,0 +1,9 @@
+- name: Desplegar Fluent-bit
+  kubernetes.core.helm:
+    name: fluent-bit
+    chart_ref: fluent/fluent-bit
+    chart_repo_url: https://fluent.github.io/helm-charts
+    chart_version: "0.46.2"
+    release_namespace: logging
+    values_files:
+      - roles/k8s/templates/fluent-bit-values.yaml

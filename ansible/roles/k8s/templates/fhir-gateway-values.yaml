@@ -1,0 +1,12 @@
+replicaCount: 1
+image:
+  repository: onaio/fhir-gateway-plugin
+  tag: "v1.0.14"
+ingress:
+  enabled: true
+  hosts:
+    - host: ayamjutgateway.prueba.pe
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []

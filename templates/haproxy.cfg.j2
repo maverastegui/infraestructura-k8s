@@ -1,0 +1,23 @@
+global
+    log /dev/log    local0
+    log /dev/log    local1 notice
+    daemon
+
+defaults
+    log     global
+    mode    http
+    option  httplog
+    timeout connect 5000
+    timeout client  50000
+    timeout server  50000
+
+frontend kubernetes-frontend
+    bind *:80
+    default_backend kubernetes-backend
+
+backend kubernetes-backend
+    balance roundrobin
+    option httpchk GET /healthz
+    server master1 192.168.18.202:6443 check
+    server worker1 192.168.18.203:6443 check
+    server worker2 192.168.18.204:6443 check

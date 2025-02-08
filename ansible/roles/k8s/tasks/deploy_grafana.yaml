@@ -1,0 +1,9 @@
+- name: Desplegar Grafana
+  kubernetes.core.helm:
+    name: grafana
+    chart_ref: grafana/grafana
+    chart_repo_url: https://grafana.github.io/helm-charts
+    chart_version: "6.56.5"
+    release_namespace: monitoring
+    values_files:
+      - roles/k8s/templates/grafana-values.yaml

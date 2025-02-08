@@ -1,0 +1,9 @@
+adminUser: admin
+ingress:
+  enabled: true
+  hosts:
+    - host: ayamjutgraf.prueba.pe
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
