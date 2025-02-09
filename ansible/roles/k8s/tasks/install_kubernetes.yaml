@@ -5,6 +5,8 @@
   shell: |
     swapoff -a
     sed -i '/ swap / s/^/#/' /etc/fstab
+  args:
+    warn: false
 
 # Instalar dependencias comunes
 - name: Instalar dependencias comunes
@@ -14,7 +16,7 @@
       - apt-transport-https
       - ca-certificates
       - software-properties-common
-    state: present
+    state: latest
     update_cache: yes
 
 # Instalar kubectl en el Load Balancer (solo en el nodo balanceador)
@@ -30,7 +32,7 @@
   when: "'master' in group_names or 'workers' in group_names"
   apt:
     name: containerd
-    state: present
+    state: latest
     update_cache: yes
 
 # Habilitar y arrancar containerd
@@ -39,7 +41,7 @@
   systemd:
     name: containerd
     enabled: yes
-    state: started
+    state: restarted
 
 # Configurar kubelet para usar containerd
 - name: Configurar kubelet para usar containerd
@@ -48,6 +50,7 @@
     dest: /etc/default/kubelet
     content: |
       KUBELET_EXTRA_ARGS=--container-runtime=remote --container-runtime-endpoint=unix:///run/containerd/containerd.sock
+  notify: Reiniciar kubelet
 
 # Reiniciar kubelet para aplicar configuración
 - name: Reiniciar kubelet para aplicar configuración
@@ -67,11 +70,22 @@
     install -o root -g root -m 0755 kubeadm /usr/local/bin/
     install -o root -g root -m 0755 kubelet /usr/local/bin/
     install -o root -g root -m 0755 kubectl /usr/local/bin/
+  args:
+    creates: /usr/local/bin/kubeadm
+
+# Instalar Helm en el Master
+- name: Instalar Helm en el Master
+  when: "'master' in group_names"
+  shell: |
+    curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+  args:
+    creates: /usr/local/bin/helm
 
 # Inicializar el clúster Kubernetes (solo en Master)
 - name: Inicializar el clúster Kubernetes (solo en Master)
   when: "'master' in group_names"
   shell: |
+    kubeadm reset -f
     kubeadm init --config=roles/k8s/templates/kubeadm-config.yaml
   register: kubeadm_init
 
@@ -88,6 +102,7 @@
   when: "'master' in group_names"
   shell: kubeadm token create --print-join-command
   register: join_command
+  changed_when: true
 
 # Guardar el comando de unión para los Workers
 - name: Guardar el comando de unión para los Workers
@@ -98,4 +113,25 @@
 # Unir Worker al clúster de forma automática
 - name: Unir Worker al clúster de forma automática
   when: "'workers' in group_names"
-  shell: "{{ hostvars[groups['master'][0]].worker_join_command }}"
+  shell: |
+    kubeadm reset -f
+    {{ hostvars[groups['master'][0]].worker_join_command }}
+  changed_when: true
+
+# Verificar el estado de los nodos
+- name: Verificar que los nodos estén en estado Ready
+  when: "'master' in group_names"
+  shell: |
+    kubectl get nodes --no-headers | awk '{print $2}' | grep -v Ready && exit 1 || exit 0
+  register: node_status
+  retries: 5
+  delay: 10
+  until: node_status.rc == 0
+
+# Handlers para reiniciar kubelet
+handlers:
+  - name: Reiniciar kubelet
+    systemd:
+      name: kubelet
+      state: restarted
+      enabled: yes
