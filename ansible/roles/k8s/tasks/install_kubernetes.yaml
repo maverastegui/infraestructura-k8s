@@ -50,15 +50,8 @@
     dest: /etc/default/kubelet
     content: |
       KUBELET_EXTRA_ARGS=--container-runtime=remote --container-runtime-endpoint=unix:///run/containerd/containerd.sock
-  notify: Reiniciar kubelet
-
-# Reiniciar kubelet para aplicar configuración
-- name: Reiniciar kubelet para aplicar configuración
-  when: "'master' in group_names or 'workers' in group_names"
-  systemd:
-    name: kubelet
-    enabled: yes
-    state: restarted
+  notify:
+    - Reiniciar kubelet
 
 # Instalar kubeadm, kubelet y kubectl en el Master
 - name: Instalar kubeadm, kubelet y kubectl en el Master
@@ -127,11 +120,3 @@
   retries: 5
   delay: 10
   until: node_status.rc == 0
-
-# Handlers para reiniciar kubelet
-handlers:
-  - name: Reiniciar kubelet
-    systemd:
-      name: kubelet
-      state: restarted
-      enabled: yes
