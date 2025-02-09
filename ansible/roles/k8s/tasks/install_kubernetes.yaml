@@ -35,8 +35,6 @@
     curl -LO https://github.com/kubernetes-sigs/cri-tools/releases/download/${VERSION}/crictl-${VERSION}-linux-amd64.tar.gz
     tar -C /usr/local/bin -xzvf crictl-${VERSION}-linux-amd64.tar.gz
     rm -f crictl-${VERSION}-linux-amd64.tar.gz
-  args:
-    warn: false
 
 # Liberar el puerto 10250 si está en uso (de forma persistente)
 - name: Liberar puerto 10250 si está en uso de forma persistente
