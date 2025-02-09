@@ -19,6 +19,28 @@
     path: /etc/apt/sources.list.d/kubernetes.list
     state: absent
 
+# Instalar conntrack (requisito para Kubernetes)
+- name: Instalar conntrack en Master y Workers
+  when: "'master' in group_names or 'workers' in group_names"
+  apt:
+    name: conntrack
+    state: present
+    update_cache: yes
+
+# Liberar el puerto 10250 si está en uso
+- name: Liberar puerto 10250 si está en uso
+  shell: |
+    fuser -k 10250/tcp || true
+  ignore_errors: yes
+
+# Habilitar IP Forwarding
+- name: Habilitar el reenvío de IP (ip_forward)
+  sysctl:
+    name: net.ipv4.ip_forward
+    value: '1'
+    state: present
+    reload: yes
+
 # Crear el archivo de configuración de kubeadm si no existe
 - name: Crear archivo kubeadm-config.yaml
   copy:
