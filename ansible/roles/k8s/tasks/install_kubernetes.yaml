@@ -52,22 +52,25 @@
   notify:
     - Reiniciar kubelet
 
-# Instalar kubeadm, kubelet y kubectl en el Master
+# Agregar la clave GPG de Kubernetes
 - name: Agregar la clave GPG de Kubernetes
   when: "'master' in group_names"
   shell: |
     curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add -
 
+# Agregar el repositorio de Kubernetes para Ubuntu 22.04 (Jammy)
 - name: Agregar el repositorio de Kubernetes
   when: "'master' in group_names"
   shell: |
-    echo "deb https://apt.kubernetes.io/ kubernetes-xenial main" | sudo tee /etc/apt/sources.list.d/kubernetes.list
+    echo "deb https://apt.kubernetes.io/ kubernetes-jammy main" | sudo tee /etc/apt/sources.list.d/kubernetes.list
 
+# Actualizar el caché de APT
 - name: Actualizar el caché de APT
   when: "'master' in group_names"
   apt:
     update_cache: yes
 
+# Instalar kubeadm, kubelet y kubectl en el Master
 - name: Instalar kubeadm, kubelet y kubectl en el Master
   when: "'master' in group_names"
   apt:
