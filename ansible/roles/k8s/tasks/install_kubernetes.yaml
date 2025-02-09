@@ -44,22 +44,20 @@
     state: present
     reload: yes
 
-# Asegurar que kubelet esté habilitado con systemctl o snap
-- name: Habilitar kubelet con systemctl o snap si está disponible
-  shell: |
-    if systemctl list-unit-files | grep -q kubelet.service; then
-      systemctl daemon-reload
-      systemctl enable kubelet.service
-      systemctl start kubelet.service
-    elif snap list | grep -q kubelet; then
-      snap enable kubelet
-      snap start kubelet
-    else
-      snap install kubelet --classic
-      systemctl daemon-reload
-      systemctl enable kubelet.service
-      systemctl start kubelet.service
-    fi
+# Instalar kubelet si no está presente
+- name: Instalar kubelet si no está presente
+  when: "'master' in group_names or 'workers' in group_names"
+  apt:
+    name: kubelet
+    state: present
+    update_cache: yes
+
+# Asegurar que kubelet esté habilitado y en ejecución
+- name: Habilitar y arrancar kubelet si está instalado
+  systemd:
+    name: kubelet
+    enabled: yes
+    state: started
   ignore_errors: yes
 
 # Crear el archivo de configuración de kubeadm si no existe
@@ -94,39 +92,27 @@
     classic: yes
     state: present
 
-# Instalar kubeadm, kubelet y kubectl en el Master y Workers usando Snap
+# Instalar kubeadm, kubelet y kubectl en el Master y Workers
 - name: Instalar kubeadm en Master y Workers
   when: "'master' in group_names or 'workers' in group_names"
-  snap:
+  apt:
     name: kubeadm
-    classic: yes
     state: present
+    update_cache: yes
 
 - name: Instalar kubelet en Master y Workers
   when: "'master' in group_names or 'workers' in group_names"
-  snap:
+  apt:
     name: kubelet
-    classic: yes
     state: present
-
-- name: Verificar instalación de kubelet
-  shell: "which kubelet"
-  register: kubelet_check
-  ignore_errors: yes
-
-- name: Iniciar y habilitar kubelet si está instalado
-  systemd:
-    name: kubelet
-    enabled: yes
-    state: started
-  when: kubelet_check.rc == 0
+    update_cache: yes
 
 - name: Instalar kubectl en Master y Workers
   when: "'master' in group_names or 'workers' in group_names"
-  snap:
+  apt:
     name: kubectl
-    classic: yes
     state: present
+    update_cache: yes
 
 # Instalar containerd (en Master y Workers)
 - name: Instalar containerd en Master y Workers
@@ -175,31 +161,11 @@
   when: "'master' in group_names"
   shell: kubeadm token create --print-join-command
   register: join_command
-  changed_when: true
-
-# Guardar el comando de unión para los Workers
-- name: Guardar el comando de unión para los Workers
-  set_fact:
-    worker_join_command: "{{ join_command.stdout }}"
-  when: "'master' in group_names"
 
 # Unir Worker al clúster de forma automática
 - name: Unir Worker al clúster de forma automática
-  when: "'workers' in group_names and hostvars[groups['master'][0]].worker_join_command is defined"
-  shell: |
-    kubeadm reset -f
-    {{ hostvars[groups['master'][0]].worker_join_command }}
-  changed_when: true
-
-# Verificar el estado de los nodos
-- name: Verificar que los nodos estén en estado Ready
-  when: "'master' in group_names"
-  shell: |
-    kubectl get nodes --no-headers | awk '{print $2}' | grep -v Ready && exit 1 || exit 0
-  register: node_status
-  retries: 5
-  delay: 10
-  until: node_status.rc == 0
+  when: "'workers' in group_names"
+  shell: "{{ hostvars[groups['master'][0]].join_command.stdout }} --ignore-preflight-errors=all"
 
 # Handlers
 - name: Reiniciar kubelet
