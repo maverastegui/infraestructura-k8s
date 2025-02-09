@@ -6,6 +6,13 @@
     swapoff -a
     sed -i '/ swap / s/^/#/' /etc/fstab
 
+# Asegurar que el directorio templates exista
+- name: Crear directorio para kubeadm-config.yaml si no existe
+  file:
+    path: roles/k8s/templates
+    state: directory
+    mode: '0755'
+
 # Eliminar repositorios de Kubernetes obsoletos
 - name: Eliminar repositorio obsoleto de Kubernetes si existe
   file:
@@ -141,8 +148,6 @@
 
 # Handlers
 - name: Reiniciar kubelet
-  systemd:
-    name: snap.kubelet.daemon
-    enabled: yes
-    state: restarted
-    
+  shell: |
+    snap restart kubelet
+    snap enable kubelet
