@@ -53,6 +53,10 @@
     elif snap list | grep -q kubelet; then
       snap enable kubelet
       snap start kubelet
+    else
+      snap install kubelet --classic
+      systemctl enable kubelet.service
+      systemctl start kubelet.service
     fi
   ignore_errors: yes
 
@@ -102,6 +106,13 @@
     name: kubelet
     classic: yes
     state: present
+
+- name: Iniciar y habilitar kubelet en Master y Workers
+  systemd:
+    name: kubelet
+    enabled: yes
+    state: started
+  when: "'master' in group_names or 'workers' in group_names"
 
 - name: Instalar kubectl en Master y Workers
   when: "'master' in group_names or 'workers' in group_names"
@@ -185,12 +196,7 @@
 
 # Handlers
 - name: Reiniciar kubelet
-  shell: |
-    if snap list | grep -q kubelet; then
-      snap restart kubelet
-      if ! snap services kubelet | grep -q 'enabled'; then
-        snap enable kubelet
-      fi
-    else
-      echo "kubelet no está instalado, omitiendo reinicio."
-    fi
+  systemd:
+    name: kubelet
+    state: restarted
+    enabled: yes
