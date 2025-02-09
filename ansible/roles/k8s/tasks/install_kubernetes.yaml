@@ -1,3 +1,5 @@
+# roles/k8s/tasks/install_kubernetes.yaml
+
 # Desactivar swap (requisito para Kubernetes)
 - name: Desactivar swap
   shell: |
@@ -47,6 +49,7 @@
     content: |
       KUBELET_EXTRA_ARGS=--container-runtime=remote --container-runtime-endpoint=unix:///run/containerd/containerd.sock
 
+# Reiniciar kubelet para aplicar configuración
 - name: Reiniciar kubelet para aplicar configuración
   when: "'master' in group_names or 'workers' in group_names"
   systemd:
