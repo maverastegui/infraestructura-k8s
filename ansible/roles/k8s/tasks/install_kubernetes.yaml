@@ -6,6 +6,12 @@
     swapoff -a
     sed -i '/ swap / s/^/#/' /etc/fstab
 
+# Eliminar repositorios de Kubernetes obsoletos
+- name: Eliminar repositorio obsoleto de Kubernetes si existe
+  file:
+    path: /etc/apt/sources.list.d/kubernetes.list
+    state: absent
+
 # Instalar dependencias comunes
 - name: Instalar dependencias comunes
   apt:
@@ -126,4 +132,3 @@
     name: kubelet
     enabled: yes
     state: restarted
-    
