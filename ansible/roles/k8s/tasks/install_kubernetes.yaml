@@ -125,8 +125,6 @@
   delay: 10
   until: node_status.rc == 0
 
----
-
 # Handlers
 - name: Reiniciar kubelet
   systemd:
