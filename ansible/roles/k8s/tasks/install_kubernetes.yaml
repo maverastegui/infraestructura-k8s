@@ -61,7 +61,7 @@
   copy:
     dest: roles/k8s/templates/kubeadm-config.yaml
     content: |
-      apiVersion: kubeadm.k8s.io/v1
+      apiVersion: kubeadm.k8s.io/v1beta3
       kind: ClusterConfiguration
       kubernetesVersion: "1.31.5"
       controlPlaneEndpoint: "192.168.18.202:6443"
