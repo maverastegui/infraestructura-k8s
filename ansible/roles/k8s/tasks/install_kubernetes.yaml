@@ -48,6 +48,7 @@
 - name: Habilitar kubelet con systemctl o snap si está disponible
   shell: |
     if systemctl list-unit-files | grep -q kubelet.service; then
+      systemctl daemon-reload
       systemctl enable kubelet.service
       systemctl start kubelet.service
     elif snap list | grep -q kubelet; then
@@ -55,6 +56,7 @@
       snap start kubelet
     else
       snap install kubelet --classic
+      systemctl daemon-reload
       systemctl enable kubelet.service
       systemctl start kubelet.service
     fi
@@ -107,12 +109,17 @@
     classic: yes
     state: present
 
-- name: Iniciar y habilitar kubelet en Master y Workers
+- name: Verificar instalación de kubelet
+  shell: "which kubelet"
+  register: kubelet_check
+  ignore_errors: yes
+
+- name: Iniciar y habilitar kubelet si está instalado
   systemd:
     name: kubelet
     enabled: yes
     state: started
-  when: "'master' in group_names or 'workers' in group_names"
+  when: kubelet_check.rc == 0
 
 - name: Instalar kubectl en Master y Workers
   when: "'master' in group_names or 'workers' in group_names"
