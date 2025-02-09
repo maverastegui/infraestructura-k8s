@@ -14,13 +14,34 @@
       - apt-transport-https
       - ca-certificates
       - software-properties-common
-      - gnupg
     state: latest
     update_cache: yes
 
 # Instalar kubectl en el Load Balancer (solo en el nodo balanceador)
 - name: Instalar kubectl en el Load Balancer
   when: "'loadbalancer' in group_names"
+  snap:
+    name: kubectl
+    classic: yes
+    state: present
+
+# Instalar kubeadm, kubelet y kubectl en el Master y Workers usando Snap
+- name: Instalar kubeadm en Master y Workers
+  when: "'master' in group_names or 'workers' in group_names"
+  snap:
+    name: kubeadm
+    classic: yes
+    state: present
+
+- name: Instalar kubelet en Master y Workers
+  when: "'master' in group_names or 'workers' in group_names"
+  snap:
+    name: kubelet
+    classic: yes
+    state: present
+
+- name: Instalar kubectl en Master y Workers
+  when: "'master' in group_names or 'workers' in group_names"
   snap:
     name: kubectl
     classic: yes
@@ -51,35 +72,6 @@
       KUBELET_EXTRA_ARGS=--container-runtime=remote --container-runtime-endpoint=unix:///run/containerd/containerd.sock
   notify:
     - Reiniciar kubelet
-
-# Agregar la clave GPG de Kubernetes
-- name: Agregar la clave GPG de Kubernetes
-  when: "'master' in group_names"
-  shell: |
-    curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add -
-
-# Agregar el repositorio de Kubernetes para Ubuntu 22.04 (Jammy)
-- name: Agregar el repositorio de Kubernetes
-  when: "'master' in group_names"
-  shell: |
-    echo "deb https://apt.kubernetes.io/ kubernetes-jammy main" | sudo tee /etc/apt/sources.list.d/kubernetes.list
-
-# Actualizar el caché de APT
-- name: Actualizar el caché de APT
-  when: "'master' in group_names"
-  apt:
-    update_cache: yes
-
-# Instalar kubeadm, kubelet y kubectl en el Master
-- name: Instalar kubeadm, kubelet y kubectl en el Master
-  when: "'master' in group_names"
-  apt:
-    name:
-      - kubeadm
-      - kubelet
-      - kubectl
-    state: latest
-    update_cache: yes
 
 # Inicializar el clúster Kubernetes (solo en Master)
 - name: Inicializar el clúster Kubernetes (solo en Master)
@@ -134,3 +126,4 @@
     name: kubelet
     enabled: yes
     state: restarted
+    
