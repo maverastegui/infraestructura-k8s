@@ -125,10 +125,11 @@
   delay: 10
   until: node_status.rc == 0
 
+---
+
 # Handlers
-handlers:
-  - name: Reiniciar kubelet
-    systemd:
-      name: kubelet
-      enabled: yes
-      state: restarted
+- name: Reiniciar kubelet
+  systemd:
+    name: kubelet
+    enabled: yes
+    state: restarted
