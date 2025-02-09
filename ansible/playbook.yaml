@@ -6,19 +6,30 @@
     - name: Instalar Kubernetes Cluster
       import_tasks: roles/k8s/tasks/install_kubernetes.yaml
 
-- name: Desplegar Ingress Controller (solo en Master)
-  hosts: master
-  become: yes
-  import_tasks: roles/k8s/tasks/deploy_ingress.yaml
-
-- name: Desplegar Servicios (solo en Master)
+- name: Desplegar Servicios en Kubernetes (solo en Master)
   hosts: master
   become: yes
   tasks:
-    - import_tasks: roles/k8s/tasks/deploy_keycloak.yaml
-    - import_tasks: roles/k8s/tasks/deploy_fhir_server.yaml
-    - import_tasks: roles/k8s/tasks/deploy_fhir_gateway.yaml
-    - import_tasks: roles/k8s/tasks/deploy_prometheus.yaml
-    - import_tasks: roles/k8s/tasks/deploy_graylog.yaml
-    - import_tasks: roles/k8s/tasks/deploy_fluentbit.yaml
-    - import_tasks: roles/k8s/tasks/deploy_grafana.yaml
+    - name: Desplegar Ingress Controller
+      import_tasks: roles/k8s/tasks/deploy_ingress.yaml
+
+    - name: Desplegar Keycloak
+      import_tasks: roles/k8s/tasks/deploy_keycloak.yaml
+
+    - name: Desplegar HAPI FHIR Server
+      import_tasks: roles/k8s/tasks/deploy_fhir_server.yaml
+
+    - name: Desplegar FHIR Gateway
+      import_tasks: roles/k8s/tasks/deploy_fhir_gateway.yaml
+
+    - name: Desplegar Prometheus
+      import_tasks: roles/k8s/tasks/deploy_prometheus.yaml
+
+    - name: Desplegar Graylog
+      import_tasks: roles/k8s/tasks/deploy_graylog.yaml
+
+    - name: Desplegar Fluent-bit
+      import_tasks: roles/k8s/tasks/deploy_fluentbit.yaml
+
+    - name: Desplegar Grafana
+      import_tasks: roles/k8s/tasks/deploy_grafana.yaml
