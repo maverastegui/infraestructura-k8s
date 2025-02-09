@@ -103,7 +103,7 @@
 
 # Unir Worker al clúster de forma automática
 - name: Unir Worker al clúster de forma automática
-  when: "'workers' in group_names"
+  when: "'workers' in group_names and hostvars[groups['master'][0]].worker_join_command is defined"
   shell: |
     kubeadm reset -f
     {{ hostvars[groups['master'][0]].worker_join_command }}
