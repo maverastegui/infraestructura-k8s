@@ -26,7 +26,7 @@
     content: |
       apiVersion: kubeadm.k8s.io/v1beta3
       kind: ClusterConfiguration
-      kubernetesVersion: "1.24.0"
+      kubernetesVersion: "1.30.0"
       controlPlaneEndpoint: "192.168.18.202:6443"
       networking:
         podSubnet: "192.168.0.0/16"
@@ -149,5 +149,9 @@
 # Handlers
 - name: Reiniciar kubelet
   shell: |
-    snap restart kubelet
-    snap enable kubelet
+    if snap list | grep -q kubelet; then
+      snap restart kubelet
+      snap enable kubelet
+    else
+      echo "kubelet no está instalado, omitiendo reinicio."
+    fi
