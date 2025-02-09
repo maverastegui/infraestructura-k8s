@@ -27,15 +27,6 @@
     state: present
     update_cache: yes
 
-# Instalar crictl en Master y Workers (descarga directa)
-- name: Descargar e instalar crictl en Master y Workers
-  when: "'master' in group_names or 'workers' in group_names"
-  shell: |
-    VERSION="v1.28.0"
-    curl -LO https://github.com/kubernetes-sigs/cri-tools/releases/download/${VERSION}/crictl-${VERSION}-linux-amd64.tar.gz
-    tar -C /usr/local/bin -xzvf crictl-${VERSION}-linux-amd64.tar.gz
-    rm -f crictl-${VERSION}-linux-amd64.tar.gz
-
 # Liberar el puerto 10250 si está en uso (de forma persistente)
 - name: Liberar puerto 10250 si está en uso de forma persistente
   shell: |
@@ -70,7 +61,7 @@
   copy:
     dest: roles/k8s/templates/kubeadm-config.yaml
     content: |
-      apiVersion: kubeadm.k8s.io/v1beta3
+      apiVersion: kubeadm.k8s.io/v1
       kind: ClusterConfiguration
       kubernetesVersion: "1.31.5"
       controlPlaneEndpoint: "192.168.18.202:6443"
@@ -150,7 +141,7 @@
   when: "'master' in group_names"
   shell: |
     kubeadm reset -f
-    kubeadm init --config=roles/k8s/templates/kubeadm-config.yaml
+    kubeadm init --ignore-preflight-errors=Port-10250 --config=roles/k8s/templates/kubeadm-config.yaml
   register: kubeadm_init
 
 # Configurar kubectl para el usuario actual (solo en Master)
@@ -203,4 +194,3 @@
     else
       echo "kubelet no está instalado, omitiendo reinicio."
     fi
-    
