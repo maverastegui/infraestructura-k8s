@@ -27,18 +27,24 @@
     state: present
     update_cache: yes
 
-# Instalar crictl (requisito para Kubernetes)
-- name: Instalar crictl en Master y Workers
+# Instalar crictl en Master y Workers (descarga directa)
+- name: Descargar e instalar crictl en Master y Workers
   when: "'master' in group_names or 'workers' in group_names"
-  apt:
-    name: cri-tools
-    state: present
-    update_cache: yes
-
-# Liberar el puerto 10250 si está en uso
-- name: Liberar puerto 10250 si está en uso
   shell: |
-    fuser -k 10250/tcp || true
+    VERSION="v1.28.0"
+    curl -LO https://github.com/kubernetes-sigs/cri-tools/releases/download/${VERSION}/crictl-${VERSION}-linux-amd64.tar.gz
+    tar -C /usr/local/bin -xzvf crictl-${VERSION}-linux-amd64.tar.gz
+    rm -f crictl-${VERSION}-linux-amd64.tar.gz
+  args:
+    warn: false
+
+# Liberar el puerto 10250 si está en uso (de forma persistente)
+- name: Liberar puerto 10250 si está en uso de forma persistente
+  shell: |
+    PID=$(lsof -t -i:10250)
+    if [ -n "$PID" ]; then
+      kill -9 $PID
+    fi
   ignore_errors: yes
 
 # Habilitar IP Forwarding
@@ -49,12 +55,15 @@
     state: present
     reload: yes
 
-# Asegurar que kubelet esté habilitado con systemctl
-- name: Habilitar kubelet con systemctl si está disponible
+# Asegurar que kubelet esté habilitado con systemctl o snap
+- name: Habilitar kubelet con systemctl o snap si está disponible
   shell: |
     if systemctl list-unit-files | grep -q kubelet.service; then
       systemctl enable kubelet.service
       systemctl start kubelet.service
+    elif snap list | grep -q kubelet; then
+      snap enable kubelet
+      snap start kubelet
     fi
   ignore_errors: yes
 
@@ -196,3 +205,4 @@
     else
       echo "kubelet no está instalado, omitiendo reinicio."
     fi
+    
