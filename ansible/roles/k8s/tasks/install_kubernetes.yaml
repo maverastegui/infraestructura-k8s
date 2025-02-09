@@ -14,6 +14,7 @@
       - apt-transport-https
       - ca-certificates
       - software-properties-common
+      - gnupg
     state: latest
     update_cache: yes
 
@@ -52,25 +53,30 @@
     - Reiniciar kubelet
 
 # Instalar kubeadm, kubelet y kubectl en el Master
+- name: Agregar la clave GPG de Kubernetes
+  when: "'master' in group_names"
+  shell: |
+    curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add -
+
+- name: Agregar el repositorio de Kubernetes
+  when: "'master' in group_names"
+  shell: |
+    echo "deb https://apt.kubernetes.io/ kubernetes-xenial main" | sudo tee /etc/apt/sources.list.d/kubernetes.list
+
+- name: Actualizar el caché de APT
+  when: "'master' in group_names"
+  apt:
+    update_cache: yes
+
 - name: Instalar kubeadm, kubelet y kubectl en el Master
   when: "'master' in group_names"
-  shell: |
-    curl -LO https://dl.k8s.io/release/v1.24.17/bin/linux/amd64/kubeadm
-    curl -LO https://dl.k8s.io/release/v1.24.17/bin/linux/amd64/kubelet
-    curl -LO https://dl.k8s.io/release/v1.24.17/bin/linux/amd64/kubectl
-    install -o root -g root -m 0755 kubeadm /usr/local/bin/
-    install -o root -g root -m 0755 kubelet /usr/local/bin/
-    install -o root -g root -m 0755 kubectl /usr/local/bin/
-  args:
-    creates: /usr/local/bin/kubeadm
-
-# Instalar Helm en el Master
-- name: Instalar Helm en el Master
-  when: "'master' in group_names"
-  shell: |
-    curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
-  args:
-    creates: /usr/local/bin/helm
+  apt:
+    name:
+      - kubeadm
+      - kubelet
+      - kubectl
+    state: latest
+    update_cache: yes
 
 # Inicializar el clúster Kubernetes (solo en Master)
 - name: Inicializar el clúster Kubernetes (solo en Master)
@@ -118,3 +124,11 @@
   retries: 5
   delay: 10
   until: node_status.rc == 0
+
+# Handlers
+handlers:
+  - name: Reiniciar kubelet
+    systemd:
+      name: kubelet
+      enabled: yes
+      state: restarted
