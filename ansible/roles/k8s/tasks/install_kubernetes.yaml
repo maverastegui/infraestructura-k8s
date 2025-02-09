@@ -12,6 +12,19 @@
     path: /etc/apt/sources.list.d/kubernetes.list
     state: absent
 
+# Crear el archivo de configuración de kubeadm si no existe
+- name: Crear archivo kubeadm-config.yaml
+  copy:
+    dest: roles/k8s/templates/kubeadm-config.yaml
+    content: |
+      apiVersion: kubeadm.k8s.io/v1beta3
+      kind: ClusterConfiguration
+      kubernetesVersion: "1.24.0"
+      controlPlaneEndpoint: "192.168.18.202:6443"
+      networking:
+        podSubnet: "192.168.0.0/16"
+  when: "'master' in group_names"
+
 # Instalar dependencias comunes
 - name: Instalar dependencias comunes
   apt:
@@ -129,6 +142,7 @@
 # Handlers
 - name: Reiniciar kubelet
   systemd:
-    name: kubelet
+    name: snap.kubelet.daemon
     enabled: yes
     state: restarted
+    
