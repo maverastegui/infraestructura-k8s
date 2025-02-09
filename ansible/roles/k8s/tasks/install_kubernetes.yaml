@@ -27,6 +27,14 @@
     state: present
     update_cache: yes
 
+# Instalar crictl (requisito para Kubernetes)
+- name: Instalar crictl en Master y Workers
+  when: "'master' in group_names or 'workers' in group_names"
+  apt:
+    name: cri-tools
+    state: present
+    update_cache: yes
+
 # Liberar el puerto 10250 si está en uso
 - name: Liberar puerto 10250 si está en uso
   shell: |
@@ -40,6 +48,15 @@
     value: '1'
     state: present
     reload: yes
+
+# Asegurar que kubelet esté habilitado con systemctl
+- name: Habilitar kubelet con systemctl si está disponible
+  shell: |
+    if systemctl list-unit-files | grep -q kubelet.service; then
+      systemctl enable kubelet.service
+      systemctl start kubelet.service
+    fi
+  ignore_errors: yes
 
 # Crear el archivo de configuración de kubeadm si no existe
 - name: Crear archivo kubeadm-config.yaml
